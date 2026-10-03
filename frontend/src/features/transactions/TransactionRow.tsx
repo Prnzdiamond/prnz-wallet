@@ -5,15 +5,19 @@ import type { Transaction } from '@/lib/types'
 import { failureText, formatShortDate, transactionTitle } from './describe'
 
 export function StatusBadge({ tx }: { tx: Transaction }) {
-  if (tx.status === 'completed') return null
-
   const styles = {
+    completed: 'bg-naira-wash text-naira-deep',
     failed: 'bg-debit-wash text-debit',
     pending: 'bg-amber-wash text-amber',
     reversed: 'bg-line-soft text-ink-soft',
   }[tx.status]
 
-  const label = tx.status === 'failed' ? failureText(tx.failure_reason) : tx.status === 'pending' ? 'Pending' : 'Reversed'
+  const label = {
+    completed: 'Successful',
+    failed: `Failed: ${failureText(tx.failure_reason).toLowerCase()}`,
+    pending: 'Pending',
+    reversed: 'Reversed',
+  }[tx.status]
 
   return <span className={`inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium ${styles}`}>{label}</span>
 }
@@ -40,17 +44,20 @@ export function TransactionRow({ tx }: { tx: Transaction }) {
         <TransactionIcon tx={tx} />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{transactionTitle(tx)}</p>
-          <p className="flex flex-wrap items-center gap-2 text-sm text-ink-faint">
-            <span>{formatShortDate(tx.created_at)}</span>
-            {tx.narration && <span className="truncate">{tx.narration}</span>}
-            <StatusBadge tx={tx} />
+          <p className="truncate text-sm text-ink-faint">
+            {formatShortDate(tx.created_at)}
+            {tx.narration && <span> · {tx.narration}</span>}
           </p>
+          <p className="hidden truncate text-xs text-ink-faint sm:block">Ref {tx.reference}</p>
         </div>
-        <p className={`tabular shrink-0 text-right font-semibold ${amountTone}`}>
-          <span className="sr-only">{tx.direction === 'credit' ? 'Credit' : 'Debit'} </span>
-          {sign}
-          {formatMoney(tx.amount, tx.currency)}
-        </p>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <p className={`tabular text-right font-semibold ${amountTone}`}>
+            <span className="sr-only">{tx.direction === 'credit' ? 'Credit' : 'Debit'} </span>
+            {sign}
+            {formatMoney(tx.amount, tx.currency)}
+          </p>
+          <StatusBadge tx={tx} />
+        </div>
       </Link>
     </li>
   )
