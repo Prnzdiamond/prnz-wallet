@@ -77,7 +77,9 @@ class Transaction extends Model
 
         $query->where(fn (Builder $q) => $q
             ->whereIn('source_wallet_id', $walletIds)
-            ->orWhereIn('destination_wallet_id', $walletIds));
+            ->orWhere(fn (Builder $q) => $q
+                ->whereIn('destination_wallet_id', $walletIds)
+                ->where('status', '!=', TransactionStatus::Failed)));
     }
 
     public function transitionTo(TransactionStatus $next, ?string $failureReason = null): void
