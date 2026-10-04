@@ -91,6 +91,7 @@ export function SendPage() {
     setResult(null)
     setDraft(null)
     setIdentifier('')
+    setRecipient(null)
     transfer.reset()
     reset({ narration: '', currency: draft?.currency ?? 'NGN', amount: '' })
   }
@@ -181,7 +182,7 @@ export function SendPage() {
 
       <Panel>
         <h2 className="mb-4 font-semibold">Who are you sending to?</h2>
-        <RecipientPicker value={identifier} onChange={setIdentifier} onResolved={setRecipient} />
+        <RecipientPicker value={identifier} onChange={setIdentifier} selected={recipient} onSelect={setRecipient} />
       </Panel>
 
       {recipient ? (
@@ -205,7 +206,7 @@ export function SendPage() {
           </form>
         </Panel>
       ) : (
-        <p className="px-1 text-sm text-ink-faint">Confirm who you are sending to, then enter the amount.</p>
+        <p className="px-1 text-sm text-ink-faint">Choose who you are sending to, then enter the amount.</p>
       )}
     </div>
   )
