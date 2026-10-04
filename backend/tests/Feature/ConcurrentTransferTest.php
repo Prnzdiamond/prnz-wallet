@@ -111,7 +111,8 @@ class ConcurrentTransferTest extends TestCase
     private function runConcurrently(array $jobs): array
     {
         $php = (new PhpExecutableFinder)->find(false);
-        $startAt = microtime(true) + 3;
+        $barrier = sys_get_temp_dir().DIRECTORY_SEPARATOR.'wallet-barrier-'.Str::random(12);
+        mkdir($barrier);
         $env = [
             'APP_ENV' => 'testing',
             'DB_CONNECTION' => 'pgsql',
@@ -120,27 +121,40 @@ class ConcurrentTransferTest extends TestCase
             'LOG_CHANNEL' => 'stderr',
         ];
 
-        $processes = array_map(function (array $job) use ($php, $startAt, $env) {
-            [$sender, $recipient, $amount, $reference] = $job;
-            $process = new Process(
-                [$php, base_path('tests/Support/transfer-worker.php'), $sender->id, $recipient->id, $amount, $reference, sprintf('%.6F', $startAt)],
+        $processes = [];
+        foreach ($jobs as $index => [$sender, $recipient, $amount, $reference]) {
+            $processes[$index] = new Process(
+                [$php, base_path('tests/Support/transfer-worker.php'), $sender->id, $recipient->id, $amount, $reference, $barrier, $index],
                 base_path(),
                 $env,
-                timeout: 60,
+                timeout: 120,
             );
-            $process->start();
+            $processes[$index]->start();
+        }
 
-            return $process;
-        }, $jobs);
+        try {
+            $deadline = microtime(true) + 90;
+            while (count(glob($barrier.DIRECTORY_SEPARATOR.'ready-*')) < count($jobs)) {
+                foreach ($processes as $process) {
+                    $this->assertTrue($process->isRunning(), 'Worker exited before the barrier: '.$process->getErrorOutput());
+                }
+                $this->assertLessThan($deadline, microtime(true), 'Workers did not reach the barrier in time.');
+                usleep(5000);
+            }
+            touch($barrier.DIRECTORY_SEPARATOR.'go');
 
-        return array_map(function (Process $process) {
-            $process->wait();
-            $result = json_decode($process->getOutput(), true);
+            return array_values(array_map(function (Process $process) {
+                $process->wait();
+                $result = json_decode($process->getOutput(), true);
 
-            $this->assertIsArray($result, 'Worker failed: '.$process->getErrorOutput().$process->getOutput());
-            $this->assertNotSame('error', $result['status'], $result['error'] ?? '');
+                $this->assertIsArray($result, 'Worker failed: '.$process->getErrorOutput().$process->getOutput());
+                $this->assertNotSame('error', $result['status'], $result['error'] ?? '');
 
-            return $result;
-        }, $processes);
+                return $result;
+            }, $processes));
+        } finally {
+            array_map('unlink', glob($barrier.DIRECTORY_SEPARATOR.'*'));
+            rmdir($barrier);
+        }
     }
 }
