@@ -3,10 +3,12 @@
 namespace App\Http\Requests;
 
 use App\Models\User;
-use Illuminate\Validation\Rule;
+use App\Rules\Recipient;
 
 class TransferRequest extends MoneyRequest
 {
+    private ?Recipient $recipientRule = null;
+
     protected function limit(): string
     {
         return 'transfer';
@@ -14,35 +16,24 @@ class TransferRequest extends MoneyRequest
 
     public function rules(): array
     {
+        $this->recipientRule = new Recipient($this->user());
+
         return [
             ...parent::rules(),
-            'recipient_email' => [
-                'required', 'string', 'email', 'max:255',
-                Rule::notIn([$this->user()->email]),
-                Rule::exists('users', 'email'),
-            ],
+            'recipient' => ['required', 'string', 'max:255', $this->recipientRule],
             'narration' => ['nullable', 'string', 'max:140'],
-        ];
-    }
-
-    public function messages(): array
-    {
-        return [
-            ...parent::messages(),
-            'recipient_email.not_in' => 'You cannot send money to yourself.',
-            'recipient_email.exists' => 'We could not find a user with that email.',
         ];
     }
 
     protected function prepareForValidation(): void
     {
-        if (is_string($this->recipient_email)) {
-            $this->merge(['recipient_email' => strtolower(trim($this->recipient_email))]);
+        if (is_string($this->recipient)) {
+            $this->merge(['recipient' => strtolower(trim($this->recipient))]);
         }
     }
 
     public function recipient(): User
     {
-        return User::query()->where('email', $this->validated('recipient_email'))->firstOrFail();
+        return $this->recipientRule->resolved;
     }
 }

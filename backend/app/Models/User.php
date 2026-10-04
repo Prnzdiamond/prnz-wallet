@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AccountNumber;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'account_number'])]
 #[Hidden(['id', 'password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -32,6 +33,17 @@ class User extends Authenticatable
     public function wallets(): HasMany
     {
         return $this->hasMany(Wallet::class);
+    }
+
+    public static function findByIdentifier(string $identifier): ?self
+    {
+        $identifier = strtolower(trim($identifier));
+
+        return match (true) {
+            AccountNumber::isValid($identifier) => static::query()->where('account_number', $identifier)->first(),
+            filter_var($identifier, FILTER_VALIDATE_EMAIL) !== false => static::query()->where('email', $identifier)->first(),
+            default => null,
+        };
     }
 
     /**

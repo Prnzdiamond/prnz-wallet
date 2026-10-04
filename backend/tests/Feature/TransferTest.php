@@ -31,7 +31,7 @@ class TransferTest extends TestCase
     private function transfer(array $overrides = [], ?User $as = null)
     {
         return $this->actingAs($as ?? $this->sender)->postJson('/api/transfers', [
-            'recipient_email' => 'recipient@example.com',
+            'recipient' => 'recipient@example.com',
             'currency' => 'NGN',
             'amount' => '30000',
             'reference' => 'transfer-ref-01',
@@ -51,7 +51,7 @@ class TransferTest extends TestCase
             ->assertJsonPath('data.amount', '30000.00')
             ->assertJsonPath('data.balance_after', '70000.00')
             ->assertJsonPath('data.narration', 'Rent share')
-            ->assertJsonPath('data.counterparty.email', 'recipient@example.com');
+            ->assertJsonPath('data.counterparty.account_number', $this->recipient->account_number);
 
         $this->assertSame('70000.00', $this->balanceOf($this->sender));
         $this->assertSame('30000.00', $this->balanceOf($this->recipient));
@@ -69,7 +69,7 @@ class TransferTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.direction', 'credit')
             ->assertJsonPath('data.balance_after', '30000.00')
-            ->assertJsonPath('data.counterparty.email', 'sender@example.com');
+            ->assertJsonPath('data.counterparty.account_number', $this->sender->account_number);
     }
 
     #[Test]
@@ -142,17 +142,17 @@ class TransferTest extends TestCase
     #[Test]
     public function a_user_cannot_transfer_to_themselves(): void
     {
-        $this->transfer(['recipient_email' => 'SENDER@example.com'])
+        $this->transfer(['recipient' => 'SENDER@example.com'])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['recipient_email' => 'You cannot send money to yourself.']);
+            ->assertJsonValidationErrors(['recipient' => 'You cannot send money to yourself.']);
     }
 
     #[Test]
     public function an_unknown_recipient_is_rejected(): void
     {
-        $this->transfer(['recipient_email' => 'nobody@example.com'])
+        $this->transfer(['recipient' => 'nobody@example.com'])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['recipient_email' => 'We could not find a user with that email.']);
+            ->assertJsonValidationErrors(['recipient' => 'We could not find an account with those details.']);
 
         $this->assertSame(0, Transaction::query()->where('reference', 'transfer-ref-01')->count());
     }
@@ -172,7 +172,7 @@ class TransferTest extends TestCase
     {
         $this->transfer([
             'sender_email' => 'recipient@example.com',
-            'recipient_email' => 'sender@example.com',
+            'recipient' => 'sender@example.com',
         ], as: $this->recipient)->assertUnprocessable()->assertJsonPath('code', 'insufficient_funds');
 
         $this->assertSame('100000.00', $this->balanceOf($this->sender));
@@ -206,17 +206,5 @@ class TransferTest extends TestCase
         $this->artisan('ledger:reconcile')->assertSuccessful();
         $this->assertSame('65000.00', $this->balanceOf($this->sender));
         $this->assertSame('35000.00', $this->balanceOf($this->recipient, Currency::NGN));
-    }
-
-    #[Test]
-    public function recipient_lookup_confirms_a_name_before_sending(): void
-    {
-        $this->actingAs($this->sender)->getJson('/api/recipients?email=Recipient@example.com')
-            ->assertOk()
-            ->assertJsonPath('data.email', 'recipient@example.com')
-            ->assertJsonPath('data.name', $this->recipient->name);
-
-        $this->actingAs($this->sender)->getJson('/api/recipients?email=nobody@example.com')->assertNotFound();
-        $this->actingAs($this->sender)->getJson('/api/recipients?email=sender@example.com')->assertUnprocessable();
     }
 }

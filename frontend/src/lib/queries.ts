@@ -8,6 +8,8 @@ export const keys = {
   transactions: ['transactions'] as const,
   transactionList: (filters: TransactionFilters) => ['transactions', 'list', filters] as const,
   transaction: (id: string) => ['transactions', 'detail', id] as const,
+  recipient: (identifier: string) => ['recipient', identifier] as const,
+  recentRecipients: ['recipients', 'recent'] as const,
 }
 
 export function useMe() {
@@ -72,6 +74,20 @@ export function useTransactions(filters: TransactionFilters, perPage = 20) {
   })
 }
 
+export function useRecipientLookup(identifier: string | null) {
+  return useQuery({
+    queryKey: keys.recipient(identifier ?? ''),
+    queryFn: () => api.recipient(identifier!),
+    enabled: identifier !== null,
+    retry: false,
+    staleTime: 60_000,
+  })
+}
+
+export function useRecentRecipients() {
+  return useQuery({ queryKey: keys.recentRecipients, queryFn: api.recentRecipients })
+}
+
 export function useTransaction(id: string) {
   return useQuery({ queryKey: keys.transaction(id), queryFn: () => api.transaction(id), retry: false })
 }
@@ -84,6 +100,7 @@ function useMoneyMutation<TInput>(mutationFn: (input: TInput) => ReturnType<type
     onSettled: () => {
       client.invalidateQueries({ queryKey: keys.wallets })
       client.invalidateQueries({ queryKey: keys.transactions })
+      client.invalidateQueries({ queryKey: keys.recentRecipients })
     },
   })
 }

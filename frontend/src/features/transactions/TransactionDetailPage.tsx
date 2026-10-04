@@ -1,9 +1,11 @@
-import { ArrowLeft, Check, Copy } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { ArrowLeft } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
+import { CopyButton } from '@/components/CopyButton'
 import { ErrorState, Panel, Skeleton } from '@/components/ui'
 import { toApiError } from '@/lib/errors'
 import { formatMoney } from '@/lib/money'
+import { formatAccountNumber } from '@/lib/recipient'
 import { useTransaction } from '@/lib/queries'
 import type { Transaction } from '@/lib/types'
 import { failureText, formatDateTime, transactionTitle } from './describe'
@@ -15,26 +17,6 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
       <dt className="text-sm text-ink-soft">{label}</dt>
       <dd className="font-medium break-all sm:text-right">{children}</dd>
     </div>
-  )
-}
-
-function CopyButton({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false)
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      setCopied(false)
-    }
-  }
-
-  return (
-    <button type="button" onClick={copy} className="ml-2 inline-flex size-8 items-center justify-center rounded-lg align-middle text-ink-soft hover:bg-line-soft" aria-label={copied ? 'Copied' : 'Copy reference'}>
-      {copied ? <Check className="size-4 text-naira" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-    </button>
   )
 }
 
@@ -64,7 +46,7 @@ export function TransactionReceipt({ tx }: { tx: Transaction }) {
         {tx.counterparty && (
           <Row label={tx.direction === 'credit' ? 'From' : 'To'}>
             {tx.counterparty.name}
-            <span className="block text-sm font-normal text-ink-soft">{tx.counterparty.email}</span>
+            <span className="block text-sm font-normal text-ink-soft">{formatAccountNumber(tx.counterparty.account_number)}</span>
           </Row>
         )}
         <Row label="Currency">{tx.currency}</Row>
@@ -73,7 +55,7 @@ export function TransactionReceipt({ tx }: { tx: Transaction }) {
         <Row label="Date">{formatDateTime(tx.created_at)}</Row>
         <Row label="Reference">
           <span className="tabular text-sm">{tx.reference}</span>
-          <CopyButton value={tx.reference} />
+          <CopyButton value={tx.reference} label="Copy reference" className="ml-2 text-ink-soft hover:bg-line-soft" />
         </Row>
         <Row label="Transaction ID">
           <span className="tabular text-sm">{tx.id}</span>

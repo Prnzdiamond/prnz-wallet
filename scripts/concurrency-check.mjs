@@ -52,7 +52,7 @@ class Client {
   }
 
   transfer(recipient, amount, reference = randomUUID()) {
-    return this.request('POST', '/api/transfers', { recipient_email: recipient.email, currency: 'NGN', amount, reference })
+    return this.request('POST', '/api/transfers', { recipient: recipient.email, currency: 'NGN', amount, reference })
   }
 }
 

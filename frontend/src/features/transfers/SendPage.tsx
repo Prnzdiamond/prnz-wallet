@@ -7,16 +7,16 @@ import { z } from 'zod'
 import { CurrencyPicker } from '@/components/CurrencyPicker'
 import { Alert, ApiErrorAlert, Button, Field, PageHeader, Panel } from '@/components/ui'
 import { isDefinitiveResponse, moneyFields, refineAmount } from '@/features/wallets/amountSchema'
-import { api } from '@/lib/endpoints'
 import { toApiError } from '@/lib/errors'
 import { CURRENCIES, formatMoney, toMinorUnits, type Currency } from '@/lib/money'
-import { useMe, useTransfer, useWallets } from '@/lib/queries'
+import { useTransfer, useWallets } from '@/lib/queries'
+import { formatAccountNumber } from '@/lib/recipient'
 import type { Recipient, Transaction } from '@/lib/types'
 import { useAttemptReference } from '@/lib/useReference'
+import { RecipientPicker } from './RecipientPicker'
 
 const schema = z
   .object({
-    recipient_email: z.string().trim().toLowerCase().pipe(z.email('Enter the recipient’s email address.')),
     narration: z
       .string()
       .trim()
@@ -36,55 +36,36 @@ function initialCurrency(value: string | null): Currency {
 
 export function SendPage() {
   const [params] = useSearchParams()
-  const { data: me } = useMe()
   const wallets = useWallets()
   const transfer = useTransfer()
   const { referenceFor, settle } = useAttemptReference()
 
+  const [identifier, setIdentifier] = useState('')
+  const [recipient, setRecipient] = useState<Recipient | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [result, setResult] = useState<Transaction | null>(null)
-  const [lookingUp, setLookingUp] = useState(false)
-  const [lookupError, setLookupError] = useState<string | null>(null)
 
-  const form = useForm<Input, unknown, Output>({
+  const { register, control, handleSubmit, setError, reset, formState } = useForm<Input, unknown, Output>({
     resolver: zodResolver(schema),
-    defaultValues: { recipient_email: '', narration: '', currency: initialCurrency(params.get('currency')), amount: '' },
+    defaultValues: { narration: '', currency: initialCurrency(params.get('currency')), amount: '' },
   })
-  const { register, control, handleSubmit, setError, reset, formState } = form
 
   const currency = useWatch({ control, name: 'currency' })
   const balance = wallets.data?.find((w) => w.currency === currency)?.balance
 
-  const toReview = handleSubmit(async (values) => {
-    setLookupError(null)
-
-    if (values.recipient_email === me?.email) {
-      setError('recipient_email', { message: 'You cannot send money to yourself.' })
-      return
-    }
+  const toReview = handleSubmit((values) => {
+    if (!recipient) return
     if (balance !== undefined && toMinorUnits(values.amount, values.currency) > toMinorUnits(balance, values.currency)) {
       setError('amount', { message: `That is more than your ${values.currency} balance of ${formatMoney(balance, values.currency)}.` })
       return
     }
-
-    setLookingUp(true)
-    try {
-      const recipient = await api.recipient(values.recipient_email)
-      setDraft({ ...values, recipient })
-    } catch (error) {
-      const apiError = toApiError(error)
-      if (apiError.status === 404) setError('recipient_email', { message: 'We could not find a user with that email.' })
-      else if (apiError.fieldErrors.email) setError('recipient_email', { message: apiError.fieldErrors.email })
-      else setLookupError(apiError.message)
-    } finally {
-      setLookingUp(false)
-    }
+    setDraft({ ...values, recipient })
   })
 
   const confirm = () => {
     if (!draft) return
     const payload = {
-      recipient_email: draft.recipient_email,
+      recipient: draft.recipient.account_number,
       currency: draft.currency,
       amount: draft.amount,
       narration: draft.narration,
@@ -109,8 +90,9 @@ export function SendPage() {
   const startAgain = () => {
     setResult(null)
     setDraft(null)
+    setIdentifier('')
     transfer.reset()
-    reset({ recipient_email: '', narration: '', currency: draft?.currency ?? 'NGN', amount: '' })
+    reset({ narration: '', currency: draft?.currency ?? 'NGN', amount: '' })
   }
 
   if (result) {
@@ -168,7 +150,7 @@ export function SendPage() {
             <div className="py-4">
               <dt className="text-sm text-ink-soft">To</dt>
               <dd className="mt-1 font-semibold">{draft.recipient.name}</dd>
-              <dd className="text-sm text-ink-soft">{draft.recipient.email}</dd>
+              <dd className="text-sm text-ink-soft">{formatAccountNumber(draft.recipient.account_number)}</dd>
             </div>
             {draft.narration && (
               <div className="py-4">
@@ -194,29 +176,37 @@ export function SendPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <PageHeader title="Send money" description="Send to anyone with a Prnz Wallet account using their email." />
+    <div className="mx-auto flex max-w-lg flex-col gap-4">
+      <PageHeader title="Send money" description="Send to anyone with a Prnz Wallet account." />
+
       <Panel>
-        <form onSubmit={toReview} noValidate className="flex flex-col gap-6">
-          {lookupError && <Alert tone="error" title={lookupError} />}
-          <Field label="Recipient’s email" type="email" autoComplete="off" inputMode="email" error={formState.errors.recipient_email?.message} {...register('recipient_email')} />
-          <Controller control={control} name="currency" render={({ field }) => <CurrencyPicker value={field.value} onChange={field.onChange} />} />
-          <Field
-            label="Amount"
-            inputMode="decimal"
-            autoComplete="off"
-            placeholder="0.00"
-            className="tabular text-lg"
-            error={formState.errors.amount?.message}
-            hint={balance !== undefined ? `Available: ${formatMoney(balance, currency)}` : undefined}
-            {...register('amount')}
-          />
-          <Field label="Narration (optional)" maxLength={140} placeholder="What is it for?" error={formState.errors.narration?.message} {...register('narration')} />
-          <Button type="submit" block loading={lookingUp}>
-            {lookingUp ? 'Checking recipient…' : 'Continue'}
-          </Button>
-        </form>
+        <h2 className="mb-4 font-semibold">Who are you sending to?</h2>
+        <RecipientPicker value={identifier} onChange={setIdentifier} onResolved={setRecipient} />
       </Panel>
+
+      {recipient ? (
+        <Panel>
+          <form onSubmit={toReview} noValidate className="flex flex-col gap-6">
+            <Controller control={control} name="currency" render={({ field }) => <CurrencyPicker value={field.value} onChange={field.onChange} />} />
+            <Field
+              label="Amount"
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0.00"
+              className="tabular text-lg"
+              error={formState.errors.amount?.message}
+              hint={balance !== undefined ? `Available: ${formatMoney(balance, currency)}` : undefined}
+              {...register('amount')}
+            />
+            <Field label="Narration (optional)" maxLength={140} placeholder="What is it for?" error={formState.errors.narration?.message} {...register('narration')} />
+            <Button type="submit" block>
+              Continue
+            </Button>
+          </form>
+        </Panel>
+      ) : (
+        <p className="px-1 text-sm text-ink-faint">Confirm who you are sending to, then enter the amount.</p>
+      )}
     </div>
   )
 }

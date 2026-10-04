@@ -24,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('wallets/fund', [WalletController::class, 'fund'])->middleware('throttle:money');
     Route::post('transfers', [TransferController::class, 'store'])->middleware('throttle:money');
     Route::get('recipients', [RecipientController::class, 'show'])->middleware('throttle:lookup');
+    Route::get('recipients/recent', [RecipientController::class, 'recent']);
     Route::get('transactions', [TransactionController::class, 'index']);
     Route::get('transactions/{transaction}', [TransactionController::class, 'show']);
 });

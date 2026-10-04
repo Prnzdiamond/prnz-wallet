@@ -40,9 +40,11 @@ It prints PASS/FAIL per check and exits non-zero on failure.
 ## Features
 
 - Registration, login, logout and profile with secure cookie sessions
-- NGN, USD and USDT wallets
+- A 10-digit account number per user, holding NGN, USD and USDT wallets
 - Simulated funding with validation and per-currency limits
-- User-to-user transfers with recipient confirmation, reference and optional narration
+- User-to-user transfers by account number or email: the recipient's name is verified before the
+  amount is entered, recent recipients are one tap away, and each transfer has a reference and
+  optional narration
 - Transaction history with filters and pagination, and a receipt for each transaction
 - Loading, empty, error, success and disabled states throughout; responsive from phone to desktop
 
@@ -75,7 +77,9 @@ parties, and a reused reference, even if application code had a bug.
 
 **Security.** Session cookies are `HttpOnly`, `Secure` and CSRF-protected; the SPA reaches the API
 through a same-origin proxy, so no tokens live in browser storage. Every query is scoped to the
-signed-in user (another user's transaction is a `404`). Public IDs are random ULIDs. The server
+signed-in user (another user's transaction is a `404`). Public IDs are random ULIDs, and account numbers are random rather than
+sequential, so neither can be guessed. Recipient lookup returns only a name and a masked email, is
+rate-limited, and there is deliberately no search across users. The server
 decides sender, balances and status; the client only states intent. Auth and money endpoints are
 rate-limited. Errors return a safe message and a request id, never internals.
 
@@ -103,11 +107,12 @@ All endpoints are under `/api` and return JSON. Amounts are decimal strings, e.g
 | POST | `/auth/register` | Create an account (and its wallets) and sign in |
 | POST | `/auth/login` | Sign in |
 | POST | `/auth/logout` | Sign out |
-| GET | `/auth/me` | Current user |
+| GET | `/auth/me` | Current user, including account number |
 | GET | `/wallets` | Balances |
 | POST | `/wallets/fund` | `{ currency, amount, reference }` |
-| POST | `/transfers` | `{ recipient_email, currency, amount, reference, narration? }` |
-| GET | `/recipients?email=` | Confirm a recipient's name |
+| POST | `/transfers` | `{ recipient, currency, amount, reference, narration? }`, where `recipient` is an account number or email |
+| GET | `/recipients?identifier=` | Resolve an account number or email to a name (email masked) |
+| GET | `/recipients/recent` | The last 5 people you sent money to |
 | GET | `/transactions` | History; filters `type`, `status`, `currency`; cursor pagination |
 | GET | `/transactions/{id}` | One transaction |
 
@@ -164,7 +169,7 @@ Open http://localhost:5173 and log in with a demo account.
 ## Tests
 
 ```bash
-cd backend && php artisan test     # 87 tests, needs the wallet_test database
+cd backend && php artisan test     # 96 tests, needs the wallet_test database
 cd frontend && npm test
 ```
 

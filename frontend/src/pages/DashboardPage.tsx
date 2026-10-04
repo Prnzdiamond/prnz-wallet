@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { CopyButton } from '@/components/CopyButton'
 import { ErrorState, Panel } from '@/components/ui'
 import { BalanceNote, BalanceNoteSkeleton } from '@/features/wallets/BalanceNote'
 import { TransactionListSkeleton, TransactionRow } from '@/features/transactions/TransactionRow'
 import { toApiError } from '@/lib/errors'
 import type { Currency } from '@/lib/money'
 import { useMe, useTransactions, useWallets } from '@/lib/queries'
+import { formatAccountNumber } from '@/lib/recipient'
 
 export function DashboardPage() {
   const { data: user } = useMe()
@@ -17,7 +19,16 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-bold tracking-tight sm:text-[1.75rem]">Hello, {firstName}</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-[1.75rem]">Hello, {firstName}</h1>
+        {user && (
+          <div className="flex items-center gap-1 rounded-xl bg-surface py-1 pr-1 pl-3 ring-1 ring-line">
+            <span className="text-sm text-ink-soft">Account number</span>
+            <span className="tabular ml-1 font-semibold">{formatAccountNumber(user.account_number)}</span>
+            <CopyButton value={user.account_number} label="Copy account number" className="text-ink-soft hover:bg-line-soft" />
+          </div>
+        )}
+      </div>
 
       {wallets.isPending ? (
         <BalanceNoteSkeleton />

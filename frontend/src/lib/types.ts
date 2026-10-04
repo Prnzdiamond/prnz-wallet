@@ -3,6 +3,7 @@ import type { Currency } from './money'
 export interface User {
   id: string
   name: string
+  account_number: string
   email: string
   created_at: string
 }
@@ -29,7 +30,7 @@ export interface Transaction {
   currency: Currency
   amount: string
   narration: string | null
-  counterparty: { name: string; email: string } | null
+  counterparty: { name: string; account_number: string } | null
   balance_after: string | null
   created_at: string
   completed_at: string | null
@@ -37,7 +38,9 @@ export interface Transaction {
 
 export interface Recipient {
   name: string
-  email: string
+  account_number: string
+  email_masked: string
+  last_sent_at?: string
 }
 
 export interface CursorPage<T> {

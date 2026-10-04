@@ -16,7 +16,7 @@ export interface FundInput {
 }
 
 export interface TransferInput extends FundInput {
-  recipient_email: string
+  recipient: string
   narration: string | null
 }
 
@@ -50,8 +50,11 @@ export const api = {
   async transfer(input: TransferInput) {
     return (await http.post<{ data: Transaction }>('/transfers', input)).data.data
   },
-  async recipient(email: string) {
-    return (await http.get<{ data: Recipient }>('/recipients', { params: { email } })).data.data
+  async recipient(identifier: string) {
+    return (await http.get<{ data: Recipient }>('/recipients', { params: { identifier } })).data.data
+  },
+  async recentRecipients() {
+    return (await http.get<{ data: Recipient[] }>('/recipients/recent')).data.data
   },
   async transactions(filters: TransactionFilters & { cursor?: string | null; per_page?: number }) {
     return (await http.get<CursorPage<Transaction>>('/transactions', { params: filters })).data

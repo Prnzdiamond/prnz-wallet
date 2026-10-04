@@ -120,7 +120,7 @@ class AuthTest extends TestCase
         $this->actingAs($user)
             ->getJson('/api/auth/me')
             ->assertOk()
-            ->assertExactJsonStructure(['data' => ['id', 'name', 'email', 'created_at']])
+            ->assertExactJsonStructure(['data' => ['id', 'name', 'account_number', 'email', 'created_at']])
             ->assertJsonPath('data.id', $user->public_id);
     }
 

@@ -44,7 +44,7 @@ class TransactionResource extends JsonResource
 
         return [
             'name' => $wallet->user->name,
-            'email' => $wallet->user->email,
+            'account_number' => $wallet->user->account_number,
         ];
     }
 
