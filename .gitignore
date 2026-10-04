@@ -1,9 +1,5 @@
-.superpowers/
-.claude/
-docs/superpowers/
 Docs/
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
-CLAUDE.md
