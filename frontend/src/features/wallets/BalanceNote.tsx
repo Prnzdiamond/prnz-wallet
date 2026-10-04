@@ -70,14 +70,14 @@ export function BalanceNote({ wallets, selected, onSelect, refreshing }: Balance
         <div className="mt-8 grid grid-cols-2 gap-3 sm:flex">
           <Link
             to={`/add-money?currency=${wallet.currency}`}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 font-semibold text-naira-deep hover:bg-naira-wash"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 font-semibold whitespace-nowrap text-naira-deep hover:bg-naira-wash sm:px-5"
           >
             <ArrowDownToLine className="size-4" aria-hidden />
             Add money
           </Link>
           <Link
             to={`/send?currency=${wallet.currency}`}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 font-semibold text-white ring-1 ring-white/40 ring-inset hover:bg-white/10"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 font-semibold whitespace-nowrap text-white ring-1 ring-white/40 ring-inset hover:bg-white/10 sm:px-5"
           >
             <ArrowUpRight className="size-4" aria-hidden />
             Send
