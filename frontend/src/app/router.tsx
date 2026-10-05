@@ -25,6 +25,7 @@ export const router = createBrowserRouter([
               { path: 'add-money', lazy: () => import('@/features/wallets/AddMoneyPage').then((m) => ({ Component: m.AddMoneyPage })) },
               { path: 'send', lazy: () => import('@/features/transfers/SendPage').then((m) => ({ Component: m.SendPage })) },
               { path: 'activity', lazy: () => import('@/features/transactions/ActivityPage').then((m) => ({ Component: m.ActivityPage })) },
+              { path: 'profile', lazy: () => import('@/features/profile/ProfilePage').then((m) => ({ Component: m.ProfilePage })) },
               { path: 'activity/:id', lazy: () => import('@/features/transactions/TransactionDetailPage').then((m) => ({ Component: m.TransactionDetailPage })) },
             ],
           },

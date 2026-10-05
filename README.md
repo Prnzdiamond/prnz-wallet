@@ -41,7 +41,8 @@ It prints PASS/FAIL per check and exits non-zero on failure.
 
 ## Features
 
-- Registration, login, logout and profile with secure cookie sessions
+- Registration, login, logout, a profile page and password change (which signs out other devices),
+  with secure cookie sessions
 - A 10-digit account number per user, holding NGN, USD and USDT wallets
 - Simulated funding with validation and per-currency limits
 - User-to-user transfers by account number or email: the recipient's name is verified before the
@@ -110,6 +111,7 @@ All endpoints are under `/api` and return JSON. Amounts are decimal strings, e.g
 | POST | `/auth/login` | Sign in |
 | POST | `/auth/logout` | Sign out |
 | GET | `/auth/me` | Current user, including account number |
+| PUT | `/auth/password` | `{ current_password, password, password_confirmation }`; signs out other devices |
 | GET | `/wallets` | Balances |
 | POST | `/wallets/fund` | `{ currency, amount, reference }` |
 | POST | `/transfers` | `{ recipient, currency, amount, reference, narration? }`, where `recipient` is an account number or email |
@@ -171,7 +173,7 @@ Open http://localhost:5173 and log in with a demo account.
 ## Tests
 
 ```bash
-cd backend && php artisan test     # 96 tests, needs the wallet_test database
+cd backend && php artisan test     # 101 tests, needs the wallet_test database
 cd frontend && npm test
 ```
 

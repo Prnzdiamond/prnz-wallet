@@ -38,6 +38,9 @@ export const api = {
     await ensureCsrfCookie()
     return (await http.post<{ data: User }>('/auth/register', input)).data.data
   },
+  async changePassword(input: { current_password: string; password: string; password_confirmation: string }) {
+    return (await http.put<{ message: string }>('/auth/password', input)).data
+  },
   async logout() {
     await http.post('/auth/logout')
   },

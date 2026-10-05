@@ -1,4 +1,4 @@
-import { ArrowDownToLine, ArrowUpRight, Home, ListOrdered, LogOut } from 'lucide-react'
+import { ArrowDownToLine, ArrowUpRight, Home, ListOrdered, LogOut, UserRound } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { useLogout, useMe } from '@/lib/queries'
 import { Logo } from './Logo'
@@ -8,6 +8,7 @@ const NAV = [
   { to: '/add-money', label: 'Add money', icon: ArrowDownToLine, end: false },
   { to: '/send', label: 'Send', icon: ArrowUpRight, end: false },
   { to: '/activity', label: 'Activity', icon: ListOrdered, end: false },
+  { to: '/profile', label: 'Profile', icon: UserRound, end: false },
 ]
 
 export function AppShell() {
@@ -74,7 +75,7 @@ export function AppShell() {
         </main>
       </div>
 
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
         {NAV.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
