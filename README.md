@@ -24,10 +24,12 @@ Try sending more than the balance, or double-clicking **Send**.
 ### Verify integrity against the live app
 
 ```bash
+git clone https://github.com/Prnzdiamond/prnz-wallet.git
+cd prnz-wallet
 node scripts/concurrency-check.mjs https://prnz-wallet.vercel.app
 ```
 
-Requires Node 20+ and nothing else. It registers throwaway users (the demo accounts are untouched)
+Run it from the repository root. Requires Node 20+ and nothing else. It registers throwaway users (the demo accounts are untouched)
 and fires real simultaneous requests:
 
 1. Two ₦80,000 transfers at the same instant from a ₦100,000 wallet → exactly one succeeds, the
@@ -189,11 +191,16 @@ The SPA is hosted on Vercel, which proxies `/api` and `/sanctum` to the API so t
 talks to one origin. The API runs on a Linux server with nginx, PHP-FPM and PostgreSQL over HTTPS.
 Server configuration and the deploy script are in `deploy/`.
 
-## Not in scope, and what would come next
+## What I would add next
 
-- **Bank payouts**: debit into a "payouts in transit" system account, call the provider after
-  commit, then complete on the provider's webhook or post a reversal on failure. The schema already
-  supports pending transactions and reversals.
-- **Very busy wallets**: a wallet receiving a very high rate of concurrent credits (a large merchant)
-  would serialise on its row lock; the standard fix is splitting it into sub-wallets.
-- Email notifications (sent after commit), transaction PIN / 2FA, admin tooling for reversals.
+- **Bank transfers (payouts).** Move the money into a "payouts in transit" system account, call the
+  payment provider after the database commit, then mark it complete when the provider confirms, or
+  post a reversal that returns the money if it fails. The schema already supports pending
+  transactions and reversals.
+- **Security settings.** A transaction PIN for transfers, two-factor login, and a list of active
+  sessions with "log out everywhere".
+- **Notifications.** Email or push alerts for money in and out, sent after the transaction commits.
+- **Support tooling.** An admin view to look up a transaction by reference or support code and
+  issue a reversal with an audit trail.
+- **Scaling very busy wallets.** A wallet that receives a very high rate of payments at once (a
+  large merchant) would queue on its row lock; splitting it into sub-wallets removes that bottleneck.
