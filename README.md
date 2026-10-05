@@ -86,6 +86,28 @@ rate-limited, and there is deliberately no search across users. The server
 decides sender, balances and status; the client only states intent. Auth and money endpoints are
 rate-limited. Errors return a safe message and a request id, never internals.
 
+## Frontend decisions
+
+**API communication.** The browser only talks to the SPA's own origin. In development Vite
+proxies `/api` and `/sanctum` to Laravel; in production a Vercel rewrite does the same. Sanctum
+then authenticates with an `HttpOnly` session cookie, axios sends the CSRF token on every request,
+and an expired token (`419`) is refreshed and retried once. There is no CORS and no token in
+browser storage.
+
+**State management.** Server data (user, balances, history, recipients) lives in TanStack Query
+rather than a global store: it caches, refetches in the background, retries only network/5xx
+errors, and refreshes balances and history after every money operation, successful or failed.
+Money requests are never retried automatically. Forms use react-hook-form with zod schemas that
+mirror the server's rules; server field errors are mapped back onto the same fields.
+
+**Safe retries.** Each funding or transfer gets a reference tied to its exact details. Retrying the
+same request after a dropped connection reuses that reference (so it cannot execute twice);
+changing the amount or recipient creates a new one. Buttons are disabled while a request is in
+flight.
+
+**Money in the browser.** Amounts stay strings end to end and are formatted without floating
+point; the one comparison the UI makes (amount against balance) uses `BigInt`.
+
 ## Project structure
 
 ```
@@ -160,6 +182,10 @@ npm run dev                   # http://localhost:5173 (proxies /api to :8000)
 Open http://localhost:5173 and log in with a demo account.
 
 ### Configuration
+
+The frontend needs no environment file: it calls `/api` on its own origin. To point the dev server
+at a different API, set `VITE_DEV_API_TARGET` (default `http://localhost:8000`). Backend settings
+live in `backend/.env` (see `backend/.env.example`):
 
 | Variable | Purpose |
 |---|---|
